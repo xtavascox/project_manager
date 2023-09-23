@@ -9,7 +9,6 @@ import (
 	"github.com/project_management/database"
 	"github.com/project_management/utils"
 	"golang.org/x/crypto/bcrypt"
-	"log"
 	"os"
 	"time"
 )
@@ -37,14 +36,14 @@ func Login(c *fiber.Ctx) error {
 			"message": "User not found",
 		})
 	}
-	log.Println(user)
+
 	if error := bcrypt.CompareHashAndPassword(user.Password, []byte(data.Password)); error != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
 			"message": "Incorrect password",
 		})
 	}
-	expireAt := time.Unix(time.Now().Add(time.Minute*5).Unix(), 0)
+	expireAt := time.Unix(time.Now().Add(time.Minute*24).Unix(), 0)
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{
 		Issuer:    user.Id.String(),
 		ExpiresAt: jwt.At(expireAt),
