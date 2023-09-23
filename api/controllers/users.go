@@ -10,7 +10,7 @@ func Users(app *fiber.App) {
 
 	user.Get("/", repositories.UsersList)
 	user.Get("/:id", repositories.UserById)
-	user.Post("/", repositories.RegisterUser)
+	user.Post("/register", repositories.RegisterUser)
 	user.Put("/:id", repositories.UpdateUser)
 	user.Delete("/:id", repositories.DeleteUser)
 }

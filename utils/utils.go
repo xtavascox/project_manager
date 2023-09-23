@@ -10,7 +10,7 @@ import (
 )
 
 func ValidateJwt(c *fiber.Ctx) error {
-	if c.Path() == "/api/v1/auth/login" || c.Path() == "/api/v1/auth/register" {
+	if c.Path() == "/api/v1/auth/login" || c.Path() == "/api/v1/user/register" {
 		return c.Next()
 	}
 	cookie := c.Cookies("jwt")

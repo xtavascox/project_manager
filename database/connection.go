@@ -25,4 +25,6 @@ func Connect() {
 	log.Println("conectado a la base de datos", conn)
 	DB = conn
 	conn.AutoMigrate(&model.User{})
+	conn.AutoMigrate(&model.Project{})
+	conn.AutoMigrate(&model.Task{})
 }

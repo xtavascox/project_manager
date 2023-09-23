@@ -21,7 +21,6 @@ func RegisterUser(c *fiber.Ctx) error {
 			"error": err.Error(),
 		})
 	}
-	log.Println(data)
 	password, _ := bcrypt.GenerateFromPassword([]byte(data["password"]), 14)
 	birthdate, _ := strconv.ParseInt(data["birthdate"], 10, 64)
 
@@ -36,17 +35,17 @@ func RegisterUser(c *fiber.Ctx) error {
 		CratedAt:   time.Now().Unix(),
 		ModifiedAt: time.Now().Unix(),
 	}
-	log.Println(formattedData)
+
 	if err := validador.Struct(formattedData); err != nil {
 		validationErrors := utils.ValidationErrors(err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": validationErrors,
 		})
 	}
-	db_result := database.DB.Create(&formattedData)
-	if db_result.Error != nil {
+	dbResult := database.DB.Create(&formattedData)
+	if dbResult.Error != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": db_result.Error.Error(),
+			"error": dbResult.Error.Error(),
 		})
 	}
 	response := model.UserDto{
@@ -64,26 +63,120 @@ func RegisterUser(c *fiber.Ctx) error {
 	return c.JSON(context)
 }
 func UserById(c *fiber.Ctx) error {
-	return nil
+	id := c.Params("id")
+	var record model.User
+	dbResult := database.DB.Where("id = ?", id).First(&record)
+	if dbResult.Error != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": dbResult.Error.Error(),
+		})
+	}
+	if record.Id == uuid.Nil {
+		c.Status(fiber.StatusNotFound)
+		return c.JSON(fiber.Map{
+			"message": "User not found",
+		})
+	}
+	response := model.UserDto{
+		Id:        record.Id,
+		FullName:  record.FirstName + " " + record.LastName,
+		Email:     record.Email,
+		UserName:  record.UserName,
+		Birthdate: record.Birthdate,
+	}
+	context := fiber.Map{
+		"statusText": "Ok",
+		"data":       response,
+	}
+	c.Status(200)
+
+	return c.JSON(context)
 }
 func UsersList(c *fiber.Ctx) error {
 	context := fiber.Map{
 		"statusText": "Ok",
-		"msg":        "BlogList",
+		"msg":        "User List",
 	}
 
 	var records []model.User
 	database.DB.Find(&records)
 
-	context["data"] = records
+	formattedRecords := make([]model.UserDto, len(records))
+	for index, record := range records {
+		formattedRecords[index] = model.UserDto{
+			Id:        record.Id,
+			FullName:  record.FirstName + " " + record.LastName,
+			Email:     record.Email,
+			UserName:  record.UserName,
+			Birthdate: record.Birthdate,
+		}
+	}
+
+	context["data"] = formattedRecords
 
 	c.Status(200)
 	return c.JSON(context)
 
 }
 func UpdateUser(c *fiber.Ctx) error {
-	return nil
+	context := fiber.Map{}
+
+	id := c.Params("id")
+	var record model.User
+	dbResult := database.DB.Where("id = ?", id).First(&record)
+	if dbResult.Error != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": dbResult.Error.Error(),
+		})
+	}
+	if record.Id == uuid.Nil {
+		c.Status(fiber.StatusNotFound)
+		return c.JSON(fiber.Map{
+			"message": "User not found",
+		})
+	}
+	if err := c.BodyParser(&record); err != nil {
+		context["statusText"] = "Error"
+		context["msg"] = "Something went wrong. "
+		return c.JSON(err)
+	}
+	result := database.DB.Save(&record)
+
+	if result.Error != nil {
+		log.Println("Error in User updating record. ")
+		context["msg"] = "Something went wrong. "
+		context["statusText"] = "Error"
+		return c.JSON(result.Error)
+	}
+	context["msg"] = "User Updated Successfully"
+
+	c.Status(200)
+	return c.JSON(context)
 }
 func DeleteUser(c *fiber.Ctx) error {
-	return nil
+	context := fiber.Map{}
+	id := c.Params("id")
+	var record model.User
+	dbResult := database.DB.Where("id = ?", id).First(&record)
+	if dbResult.Error != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": dbResult.Error.Error(),
+		})
+	}
+	if record.Id == uuid.Nil {
+		c.Status(fiber.StatusNotFound)
+		return c.JSON(fiber.Map{
+			"message": "User not found",
+		})
+	}
+
+	result := database.DB.Delete(record)
+	if result.Error != nil {
+		context["msg"] = "Something went wrong. "
+		context["statusText"] = "Error"
+		return c.JSON(result.Error)
+	}
+	context["msg"] = "User Deleted Successfully"
+
+	return c.JSON(context)
 }
